@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/colors.dart';
+import 'home_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -59,7 +60,7 @@ class WelcomeScreen extends StatelessWidget {
                           'Trouve un endroit pour passer le\nreste de la journée à l\'intérieur de la maison',
                           style: TextStyle(
                             color: AppColors.textWhite,
-                            fontSize: 16,
+                            fontSize: 25,
                             fontWeight: FontWeight.w300,
                             height: 1.5,
                           ),
@@ -80,9 +81,12 @@ class WelcomeScreen extends StatelessWidget {
                       width: double.infinity,
                       height: 56,
                       child: ElevatedButton(
-                        onPressed: (){
-                          print('Commenccer button pressed');
-                        },
+                          onPressed: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (context) => const HomeScreen()),
+                            );
+                          },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primaryDark,
                           foregroundColor: AppColors.textWhite,
