@@ -1,6 +1,8 @@
 
 import 'package:flutter/material.dart';
 
+import '../widgets/app_bottom_nav.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -157,7 +159,7 @@ class ProfileScreen extends StatelessWidget {
                   const CircleAvatar(
                     radius: 35,
                     backgroundColor: Colors.transparent, // Fond transparent si l'image a de la transparence
-                    backgroundImage: AssetImage('assets/images/welcome_screen.png'), // TON IMAGE ICI
+                    backgroundImage: AssetImage('assets/images/user.jpg'), // TON IMAGE ICI
                   ),
                   const SizedBox(width: 16),
 
@@ -301,40 +303,7 @@ class ProfileScreen extends StatelessWidget {
       // ----------------------------------------------------
       // 7. BOTTOM NAVIGATION BAR
       // ----------------------------------------------------
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.blueGrey[900],
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.grey[600],
-        selectedFontSize: 12,
-        unselectedFontSize: 12,
-        currentIndex: 4, // 'Profil' est le 5ème élément (index 4)
-        onTap: (index) {
-          print("Tapped item $index");
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'Accueil',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.list_alt),
-            label: 'Mes Biens',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat_bubble_outline),
-            label: 'Messages',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.favorite_border),
-            label: 'Favoris',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'Profil',
-          ),
-        ],
-      ),
+      bottomNavigationBar: const AppBottomNav(currentIndex: 3),
     );
   }
 }

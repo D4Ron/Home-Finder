@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../utils/colors.dart';
+import '../widgets/app_bottom_nav.dart';
 
 class HomeScreen extends StatelessWidget{
   const HomeScreen({super.key});
@@ -138,7 +139,7 @@ class HomeScreen extends StatelessWidget{
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: [
                   _buildPropertyCard(
-                    imageUrl: 'assets/images/house1.jpg',
+                    imageUrl: 'assets/images/house3.jpg',
                     title: 'Maison familiale moderne',
                     location: 'Agoè Assiyéyé, TG',
                     rating: 4.5,
@@ -156,7 +157,7 @@ class HomeScreen extends StatelessWidget{
                   ),
                   const SizedBox(height: 16),
                   _buildPropertyCard(
-                    imageUrl: 'assets/images/house3.jpg',
+                    imageUrl: 'assets/images/house1.jpg',
                     title: 'Appartement de style japon',
                     location: 'Bè, TG',
                     rating: 4.2,
@@ -169,41 +170,8 @@ class HomeScreen extends StatelessWidget{
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: AppColors.primaryDark,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: BottomNavigationBar(
-          backgroundColor: Colors.transparent,
-          type:BottomNavigationBarType.fixed,
-          elevation: 0,
-          selectedItemColor: Colors.white,
-          unselectedItemColor: AppColors.textGray,
-          items: [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: 'Home',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.description),
-              label: 'Annonces',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.chat_bubble_outline),
-              label: 'Messages',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.favorite_border),
-              label: 'Favoris',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              label: 'Profil',
-            ),
-          ],
-        )
-      )
+      //Navigation
+      bottomNavigationBar: const AppBottomNav(currentIndex: 0),
     );
   }
   Widget _buildCategoryChip(String label, {required bool isSelected}){

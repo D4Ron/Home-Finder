@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/app_bottom_nav.dart';
+
 class FavorisScreen extends StatelessWidget {
   const FavorisScreen({Key? key}) : super(key: key);
 
@@ -171,49 +173,7 @@ class FavorisScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E3A5F),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 8,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          backgroundColor: const Color(0xFF1E3A5F),
-          type: BottomNavigationBarType.fixed,
-          selectedItemColor: Colors.white,
-          unselectedItemColor: Colors.white70,
-          currentIndex: 3,
-          showSelectedLabels: false,
-          showUnselectedLabels: false,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: '',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.view_list),
-              label: '',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.chat_sharp),
-              label: '',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.favorite),
-              label: '',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person),
-              label: '',
-            ),
-          ],
-        ),
-      ),
+      bottomNavigationBar: const AppBottomNav(currentIndex: 2),
     );
   }
 
