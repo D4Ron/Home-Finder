@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:home_finder/screens/details.dart';
 import '../utils/colors.dart';
 import '../screens/home_screen.dart';
 import '../screens/favoris_screen.dart';
@@ -38,12 +39,11 @@ class AppBottomNav extends StatelessWidget {
               MaterialPageRoute(builder: (context) => const HomeScreen()),
             );
           } else if (index == 1) {
-            // Navigate to Annonces
-            // Navigator.pushReplacement(
-            //   context,
-            //   MaterialPageRoute(builder: (context) => const AnnoncesScreen()),
-            // );
-            print('Annonces - Coming soon');
+            // Navigate to Details
+             Navigator.pushReplacement(
+               context,
+               MaterialPageRoute(builder: (context) => const DetailsScreen()),
+             );
           } else if (index == 2) {
             // Navigate to Favoris
             Navigator.pushReplacement(
@@ -65,7 +65,7 @@ class AppBottomNav extends StatelessWidget {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.description),
-            label: 'Annonces',
+            label: 'Details',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.favorite_border),
