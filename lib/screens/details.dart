@@ -256,13 +256,6 @@ class _DetailsScreenState extends State<DetailsScreen> {
           ],
         ),
       ),
-
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.primaryDark,
-        child: const Icon(Icons.chat_bubble_outline),
-        onPressed: () {},
-      ),
       bottomNavigationBar: const AppBottomNav(currentIndex: 1),
     );
   }
