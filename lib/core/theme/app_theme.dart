@@ -54,7 +54,7 @@ class AppTheme {
       ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-        borderSide: BorderSide(color: AppColors.textLight),
+        borderSide: const BorderSide(color: AppColors.textLight),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(AppSizes.radiusMd),

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../core/constants/app_colors.dart';
 import '../../providers/message_provider.dart';
 import '../../screens/home/home_screen.dart';
 import '../../screens/favourites/favourites_screen.dart';

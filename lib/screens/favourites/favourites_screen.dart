@@ -99,9 +99,9 @@ class _AlertBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(
+          const CircleAvatar(
             backgroundColor: AppColors.textDark,
-            child: const Icon(Icons.notifications, color: AppColors.textWhite),
+            child: Icon(Icons.notifications, color: AppColors.textWhite),
           ),
           const SizedBox(width: AppSizes.md),
           const Expanded(
@@ -119,7 +119,7 @@ class _AlertBanner extends StatelessWidget {
           Switch(
             value: enabled,
             onChanged: onToggle,
-            activeColor: AppColors.primary,
+            activeThumbColor: AppColors.primary,
           ),
         ],
       ),
@@ -135,10 +135,10 @@ class _FavList extends StatelessWidget {
         return const Center(child: CircularProgressIndicator());
       }
       if (favs.favourites.isEmpty) {
-        return Center(
+        return const Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: const [
+            children: [
               Icon(Icons.favorite_border, size: 64, color: AppColors.textLight),
               SizedBox(height: AppSizes.md),
               Text('Aucun favori pour l\'instant',

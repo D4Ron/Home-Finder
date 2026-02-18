@@ -99,16 +99,16 @@ class _Header extends StatelessWidget {
           AppSizes.md, AppSizes.md, AppSizes.md, 0),
       child: Row(
         children: [
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(AppStrings.findHome,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: AppSizes.fontLg,
                         fontWeight: FontWeight.w500)),
                 Text(AppStrings.idealPlace,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: AppSizes.fontLg,
                         fontWeight: FontWeight.bold,
                         color: AppColors.primary)),

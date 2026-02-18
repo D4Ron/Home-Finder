@@ -112,8 +112,8 @@ class ProfileScreen extends StatelessWidget {
               Navigator.pop(context);
               auth.logout();
             },
-            child: Text(AppStrings.logout,
-                style: const TextStyle(color: AppColors.error)),
+            child: const Text(AppStrings.logout,
+                style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -243,7 +243,7 @@ class _Item extends StatelessWidget {
         child: Icon(icon, color: c, size: 20),
       ),
       title: Text(label, style: TextStyle(color: c, fontWeight: FontWeight.w500)),
-      trailing: Icon(Icons.chevron_right, color: AppColors.textLight, size: 20),
+      trailing: const Icon(Icons.chevron_right, color: AppColors.textLight, size: 20),
       onTap: onTap,
     );
   }

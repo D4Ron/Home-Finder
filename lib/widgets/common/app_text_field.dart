@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../core/constants/app_sizes.dart';
 
 class AppTextField extends StatefulWidget {
   final TextEditingController? controller;
