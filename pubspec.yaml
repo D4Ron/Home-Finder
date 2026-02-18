@@ -1,58 +1,48 @@
-name: home_finder
-description: "A real estate app for finding your ideal home"
+name: homefinder
+description: Application immobilière - CSC 372
 
 publish_to: 'none'
-
-
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.9.2
-
+  sdk: '>=3.2.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
 
+  # ── State management ─────────────────────────────────────────────────────────
+  provider: ^6.1.2
 
+  # ── Firebase ─────────────────────────────────────────────────────────────────
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+
+  # ── HTTP ─────────────────────────────────────────────────────────────────────
+  http: ^1.2.2
+
+  # ── Utilities ────────────────────────────────────────────────────────────────
+  intl: ^0.19.0
+
+  # ── Icons ────────────────────────────────────────────────────────────────────
   cupertino_icons: ^1.0.8
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-
-  flutter_lints: ^6.0.0
-
-
-
+  flutter_lints: ^4.0.0
 
 flutter:
-
-
   uses-material-design: true
 
+  # ── Assets ───────────────────────────────────────────────────────────────────
   assets:
-    - assets/images/welcome_screen.jpg
-    - assets/images/user.jpg
-    - assets/images/house1.jpg
-    - assets/images/house2.jpg
-    - assets/images/house3.jpg
-    - assets/images/details.png
-    - assets/images/maison.jpeg
-    - assets/images/maison2.jpeg
-    - assets/images/maison3.jpeg
-    - assets/images/maison4.jpeg
-    - assets/images/maison5.jpeg
-    - assets/images/profile.jpeg
+    - assets/images/
 
-
-
-
-
-
-
-
-
-
-
+  # ── Fonts (uncomment if you add custom fonts) ────────────────────────────────
+  # fonts:
+  #   - family: Poppins
+  #     fonts:
+  #       - asset: assets/fonts/Poppins-Regular.ttf
+  #       - asset: assets/fonts/Poppins-Bold.ttf
+  #         weight: 700
