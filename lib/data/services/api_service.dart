@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../../core/constants/api_constants.dart';
@@ -22,12 +23,18 @@ class ApiService {
     };
   }
 
-  Future<dynamic> get(String endpoint) async {
+  Uri _uri(String endpoint, {Map<String, String>? queryParams}) {
+    final base = '${ApiConstants.baseUrl}$endpoint';
+    final uri = Uri.parse(base);
+    if (queryParams != null && queryParams.isNotEmpty) {
+      return uri.replace(queryParameters: queryParams);
+    }
+    return uri;
+  }
+
+  Future<dynamic> get(String endpoint, {Map<String, String>? queryParams}) async {
     final res = await _client
-        .get(
-      Uri.parse('${ApiConstants.baseUrl}$endpoint'),
-      headers: await _headers(),
-    )
+        .get(_uri(endpoint, queryParams: queryParams), headers: await _headers())
         .timeout(ApiConstants.timeout);
     return _parse(res);
   }
@@ -35,7 +42,23 @@ class ApiService {
   Future<dynamic> post(String endpoint, {Map<String, dynamic>? body}) async {
     final res = await _client
         .post(
-      Uri.parse('${ApiConstants.baseUrl}$endpoint'),
+      _uri(endpoint),
+      headers: await _headers(),
+      body: body != null ? jsonEncode(body) : null,
+    )
+        .timeout(ApiConstants.timeout);
+    return _parse(res);
+  }
+
+  /// POST with query parameters (e.g. /auth/firebase-token?token=xxx)
+  Future<dynamic> postWithQuery(
+      String endpoint, {
+        Map<String, String>? queryParams,
+        Map<String, dynamic>? body,
+      }) async {
+    final res = await _client
+        .post(
+      _uri(endpoint, queryParams: queryParams),
       headers: await _headers(),
       body: body != null ? jsonEncode(body) : null,
     )
@@ -46,7 +69,7 @@ class ApiService {
   Future<dynamic> put(String endpoint, {Map<String, dynamic>? body}) async {
     final res = await _client
         .put(
-      Uri.parse('${ApiConstants.baseUrl}$endpoint'),
+      _uri(endpoint),
       headers: await _headers(),
       body: body != null ? jsonEncode(body) : null,
     )
@@ -57,7 +80,7 @@ class ApiService {
   Future<dynamic> patch(String endpoint, {Map<String, dynamic>? body}) async {
     final res = await _client
         .patch(
-      Uri.parse('${ApiConstants.baseUrl}$endpoint'),
+      _uri(endpoint),
       headers: await _headers(),
       body: body != null ? jsonEncode(body) : null,
     )
@@ -67,22 +90,42 @@ class ApiService {
 
   Future<void> delete(String endpoint) async {
     final res = await _client
-        .delete(
-      Uri.parse('${ApiConstants.baseUrl}$endpoint'),
-      headers: await _headers(),
-    )
+        .delete(_uri(endpoint), headers: await _headers())
         .timeout(ApiConstants.timeout);
     _parse(res);
+  }
+
+  Future<dynamic> uploadFile(
+      String endpoint,
+      File file,
+      String fieldName, {
+        bool multipleFiles = false,
+      }) async {
+    final token = await FirebaseAuth.instance.currentUser?.getIdToken();
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('${ApiConstants.baseUrl}$endpoint'),
+    );
+    if (token != null) {
+      request.headers['Authorization'] = 'Bearer $token';
+    }
+    request.files.add(
+      await http.MultipartFile.fromPath(fieldName, file.path),
+    );
+    final streamed = await request.send().timeout(ApiConstants.timeout);
+    final res = await http.Response.fromStream(streamed);
+    return _parse(res);
   }
 
   dynamic _parse(http.Response res) {
     if (res.statusCode >= 200 && res.statusCode < 300) {
       if (res.body.isEmpty) return null;
-      final decoded = jsonDecode(res.body);
+      final decoded = jsonDecode(utf8.decode(res.bodyBytes));
       // Backend wraps data in { success, data, message }
-      return decoded is Map && decoded.containsKey('data')
-          ? decoded['data']
-          : decoded;
+      if (decoded is Map && decoded.containsKey('data')) {
+        return decoded['data'];
+      }
+      return decoded;
     }
     final msg = _errorMsg(res);
     throw ApiException(msg, res.statusCode);
@@ -90,7 +133,8 @@ class ApiService {
 
   String _errorMsg(http.Response res) {
     try {
-      return jsonDecode(res.body)['message'] ?? 'Erreur ${res.statusCode}';
+      final body = jsonDecode(utf8.decode(res.bodyBytes));
+      return body['message'] ?? body['error'] ?? 'Erreur ${res.statusCode}';
     } catch (_) {
       return 'Erreur ${res.statusCode}';
     }

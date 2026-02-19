@@ -17,9 +17,9 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
+  final _formKey   = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
-  final _passCtrl = TextEditingController();
+  final _passCtrl  = TextEditingController();
 
   @override
   void dispose() {
@@ -31,32 +31,46 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final auth = context.read<AuthProvider>();
+    auth.clearError();
+
     final ok = await auth.login(
       email: _emailCtrl.text.trim(),
       password: _passCtrl.text,
     );
+
+    // Navigation is handled automatically by the Consumer<AuthProvider>
+    // in main.dart — when auth.authenticated becomes true, HomeScreen appears.
     if (!ok && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(auth.error ?? AppStrings.errorGeneric),
-            backgroundColor: AppColors.error),
-      );
+      _showError(auth.error ?? AppStrings.errorGeneric);
     }
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: AppColors.error,
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: Stack(
         children: [
-          // Background image
+          // Background
           SizedBox.expand(
             child: Image.asset(
               'assets/images/welcome_screen.jpg',
               fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(color: AppColors.primary),
             ),
           ),
-          Container(color: AppColors.primary.withOpacity(0.6)),
+          Container(color: AppColors.primary.withOpacity(0.65)),
 
           SafeArea(
             child: Center(
@@ -66,34 +80,55 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const SizedBox(height: AppSizes.xxl),
-                    // Logo / Title
-                    const Text(AppStrings.appName,
-                        style: TextStyle(
-                            color: AppColors.textWhite,
-                            fontSize: AppSizes.fontXl * 1.5,
-                            fontWeight: FontWeight.bold)),
+
+                    // Logo
+                    const Icon(Icons.home_work_rounded,
+                        color: Colors.white, size: 56),
+                    const SizedBox(height: AppSizes.sm),
+                    const Text(
+                      AppStrings.appName,
+                      style: TextStyle(
+                        color: AppColors.textWhite,
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1,
+                      ),
+                    ),
                     const SizedBox(height: AppSizes.xs),
-                    const Text('Connexion',
-                        style: TextStyle(
-                            color: Colors.white70, fontSize: AppSizes.fontLg)),
+                    const Text(
+                      'Connexion',
+                      style: TextStyle(
+                          color: Colors.white70, fontSize: AppSizes.fontLg),
+                    ),
                     const SizedBox(height: AppSizes.xxl),
+
                     // Form card
                     Container(
                       padding: const EdgeInsets.all(AppSizes.lg),
                       decoration: BoxDecoration(
                         color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(AppSizes.radiusXl),
+                        borderRadius:
+                        BorderRadius.circular(AppSizes.radiusXl),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.15),
+                            blurRadius: 20,
+                            offset: const Offset(0, 8),
+                          )
+                        ],
                       ),
                       child: Form(
                         key: _formKey,
                         child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             AppTextField(
                               controller: _emailCtrl,
                               label: AppStrings.email,
                               keyboardType: TextInputType.emailAddress,
                               textInputAction: TextInputAction.next,
-                              prefixIcon: const Icon(Icons.email_outlined),
+                              prefixIcon:
+                              const Icon(Icons.email_outlined),
                               validator: Validators.email,
                             ),
                             const SizedBox(height: AppSizes.md),
@@ -102,8 +137,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               label: AppStrings.password,
                               obscure: true,
                               textInputAction: TextInputAction.done,
-                              prefixIcon: const Icon(Icons.lock_outline),
+                              prefixIcon:
+                              const Icon(Icons.lock_outline),
                               validator: Validators.password,
+                              onSubmitted: (_) => _submit(),
                             ),
                             const SizedBox(height: AppSizes.lg),
                             Consumer<AuthProvider>(
@@ -117,6 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ),
+
                     const SizedBox(height: AppSizes.lg),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -129,13 +167,19 @@ class _LoginScreenState extends State<LoginScreen> {
                             MaterialPageRoute(
                                 builder: (_) => const RegisterScreen()),
                           ),
-                          child: const Text(AppStrings.register,
-                              style: TextStyle(
-                                  color: AppColors.textWhite,
-                                  fontWeight: FontWeight.bold)),
+                          child: const Text(
+                            AppStrings.register,
+                            style: TextStyle(
+                              color: AppColors.textWhite,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.underline,
+                              decorationColor: Colors.white,
+                            ),
+                          ),
                         ),
                       ],
                     ),
+                    const SizedBox(height: AppSizes.xxl),
                   ],
                 ),
               ),

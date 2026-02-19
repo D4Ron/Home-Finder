@@ -20,8 +20,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _scrollCtrl  = ScrollController();
-  final _searchCtrl  = TextEditingController();
+  final _scrollCtrl = ScrollController();
+  final _searchCtrl = TextEditingController();
   String? _activeType;
 
   @override
@@ -48,10 +48,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _applySearch() {
     context.read<PropertyProvider>().load(
-      city: _searchCtrl.text.trim().isEmpty ? null : _searchCtrl.text.trim(),
-      type: _activeType,
-      refresh: true,
-    );
+          city:
+              _searchCtrl.text.trim().isEmpty ? null : _searchCtrl.text.trim(),
+          type: _activeType,
+          refresh: true,
+        );
   }
 
   @override
@@ -67,17 +68,22 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Column(
-          children: [
-            _Header(user: user),
-            _SearchBar(ctrl: _searchCtrl, onSearch: _applySearch),
-            const SizedBox(height: AppSizes.md),
-            CategoryChips(
-              active: _activeType,
-              onSelect: _applyType,
+        child: CustomScrollView(
+          controller: _scrollCtrl,
+          slivers: [
+            SliverToBoxAdapter(child: _Header(user: user)),
+            SliverToBoxAdapter(
+              child: _SearchBar(ctrl: _searchCtrl, onSearch: _applySearch),
             ),
-            const SizedBox(height: AppSizes.md),
-            Expanded(child: _PropertyList(scrollCtrl: _scrollCtrl)),
+            const SliverToBoxAdapter(child: SizedBox(height: AppSizes.md)),
+            SliverToBoxAdapter(
+              child: CategoryChips(
+                active: _activeType,
+                onSelect: _applyType,
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: AppSizes.md)),
+            _SliverPropertyList(),
           ],
         ),
       ),
@@ -95,8 +101,8 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-          AppSizes.md, AppSizes.md, AppSizes.md, 0),
+      padding:
+          const EdgeInsets.fromLTRB(AppSizes.md, AppSizes.md, AppSizes.md, 0),
       child: Row(
         children: [
           const Expanded(
@@ -118,9 +124,20 @@ class _Header extends StatelessWidget {
           CircleAvatar(
             radius: AppSizes.avatarSm / 2,
             backgroundColor: AppColors.primary,
-            backgroundImage: user?.profileImageUrl != null
+            backgroundImage: user?.profileImageUrl != null &&
+                    user!.profileImageUrl!.isNotEmpty
                 ? NetworkImage(user!.profileImageUrl!)
-                : const AssetImage('assets/images/user.jpg') as ImageProvider,
+                : null,
+            child:
+                user?.profileImageUrl == null || user!.profileImageUrl!.isEmpty
+                    ? Text(
+                        user?.initials ?? 'U',
+                        style: const TextStyle(
+                          color: AppColors.textWhite,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      )
+                    : null,
           ),
         ],
       ),
@@ -136,8 +153,8 @@ class _SearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-          AppSizes.md, AppSizes.md, AppSizes.md, 0),
+      padding:
+          const EdgeInsets.fromLTRB(AppSizes.md, AppSizes.md, AppSizes.md, 0),
       child: Row(
         children: [
           Expanded(
@@ -153,13 +170,12 @@ class _SearchBar extends StatelessWidget {
                   borderSide: BorderSide.none,
                 ),
                 contentPadding:
-                const EdgeInsets.symmetric(vertical: AppSizes.sm),
+                    const EdgeInsets.symmetric(vertical: AppSizes.sm),
               ),
               onSubmitted: (_) => onSearch(),
             ),
           ),
           const SizedBox(width: AppSizes.sm),
-          // Filter button — opens bottom sheet
           GestureDetector(
             onTap: () => showModalBottomSheet(
               context: context,
@@ -171,11 +187,11 @@ class _SearchBar extends StatelessWidget {
               builder: (_) => FilterBottomSheet(
                 onApply: (min, max, beds) =>
                     context.read<PropertyProvider>().load(
-                      minPrice: min,
-                      maxPrice: max,
-                      minBeds: beds,
-                      refresh: true,
-                    ),
+                          minPrice: min,
+                          maxPrice: max,
+                          minBeds: beds,
+                          refresh: true,
+                        ),
               ),
             ),
             child: Container(
@@ -185,8 +201,7 @@ class _SearchBar extends StatelessWidget {
                 color: AppColors.primary,
                 borderRadius: BorderRadius.circular(AppSizes.radiusMd),
               ),
-              child:
-              const Icon(Icons.tune, color: AppColors.textWhite),
+              child: const Icon(Icons.tune, color: AppColors.textWhite),
             ),
           ),
         ],
@@ -195,61 +210,68 @@ class _SearchBar extends StatelessWidget {
   }
 }
 
-class _PropertyList extends StatelessWidget {
-  final ScrollController scrollCtrl;
-  const _PropertyList({required this.scrollCtrl});
-
+class _SliverPropertyList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Consumer2<PropertyProvider, FavouriteProvider>(
       builder: (context, props, favs, _) {
         if (props.loading && props.properties.isEmpty) {
-          return const Center(child: CircularProgressIndicator());
+          return const SliverFillRemaining(
+            child: Center(child: CircularProgressIndicator()),
+          );
         }
         if (props.error != null && props.properties.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(props.error!, style: const TextStyle(color: AppColors.error)),
-                const SizedBox(height: AppSizes.sm),
-                TextButton(
-                  onPressed: () => props.load(refresh: true),
-                  child: const Text(AppStrings.retry),
-                ),
-              ],
+          return SliverFillRemaining(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(props.error!,
+                      style: const TextStyle(color: AppColors.error)),
+                  const SizedBox(height: AppSizes.sm),
+                  TextButton(
+                    onPressed: () => props.load(refresh: true),
+                    child: const Text(AppStrings.retry),
+                  ),
+                ],
+              ),
             ),
           );
         }
         if (props.properties.isEmpty) {
-          return const Center(child: Text(AppStrings.noData));
+          return const SliverFillRemaining(
+            child: Center(child: Text(AppStrings.noData)),
+          );
         }
-        return ListView.builder(
-          controller: scrollCtrl,
+        return SliverPadding(
           padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
-          itemCount: props.properties.length + (props.loadingMore ? 1 : 0),
-          itemBuilder: (_, i) {
-            if (i == props.properties.length) {
-              return const Padding(
-                padding: EdgeInsets.all(AppSizes.md),
-                child: Center(child: CircularProgressIndicator()),
-              );
-            }
-            final p = props.properties[i];
-            return Padding(
-              padding: const EdgeInsets.only(bottom: AppSizes.md),
-              child: PropertyCard(
-                property: p,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => PropertyDetailScreen(propertyId: p.id),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, i) {
+                if (i == props.properties.length) {
+                  return const Padding(
+                    padding: EdgeInsets.all(AppSizes.md),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                }
+                final p = props.properties[i];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: AppSizes.md),
+                  child: PropertyCard(
+                    property: p,
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PropertyDetailScreen(propertyId: p.id),
+                      ),
+                    ),
+                    onFavouriteTap: () => favs.toggle(p),
                   ),
-                ),
-                onFavouriteTap: () => favs.toggle(p),
-              ),
-            );
-          },
+                );
+              },
+              childCount: props.properties.length + (props.loadingMore ? 1 : 0),
+            ),
+          ),
         );
       },
     );

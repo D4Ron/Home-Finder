@@ -19,35 +19,21 @@ class AuthProvider with ChangeNotifier {
   bool get authenticated => _user != null;
   String? get error => _error;
 
-  // Called once at app start — restores session if Firebase user exists
+  /// Called once at app start — restores session if Firebase user exists.
+  /// Follows the sequence diagram: Flutter → Firebase token → Backend /auth/firebase-token
   Future<void> init() async {
-    final user = _auth.currentUser;
-    if (user == null) return;
+    final firebaseUser = _auth.currentUser;
+    if (firebaseUser == null) return;
 
     _loading = true;
     notifyListeners();
 
     try {
-      await _syncUser();
+      await _syncWithBackend(firebaseUser);
     } catch (e) {
-      // If we are here, it means Firebase thinks we are logged in,
-      // but the backend refused /auth/me (likely 404/401 because DataSeeder wiped users).
-      // Attempt to self-repair by re-registering on backend
-      try {
-        if (user.email != null) {
-          await _api.post(ApiConstants.register, body: {
-            'name': user.displayName ?? user.email!.split('@')[0],
-            'email': user.email,
-            'firebaseUid': user.uid,
-          });
-          // Now try syncing again
-          await _syncUser();
-          return;
-        }
-      } catch (_) {
-        // If repair fails, force logout
-        await _auth.signOut();
-      }
+      // Token invalid or user not found in backend — sign out cleanly
+      await _auth.signOut();
+      _user = null;
     } finally {
       _loading = false;
       notifyListeners();
@@ -59,38 +45,57 @@ class AuthProvider with ChangeNotifier {
     required String email,
     required String password,
     String? phone,
+    String role = 'USER',
   }) async {
     _setLoading(true);
+    _error = null;
     try {
-      // 1. Create Firebase account
-      await _auth.createUserWithEmailAndPassword(
+      // Step 1: Create Firebase account
+      final credential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-      // 2. Register on backend
-      final user = _auth.currentUser;
-      if (user == null)
-        throw FirebaseAuthException(
-            code: 'user-not-found', message: 'User not found after creation');
+      final firebaseUser = credential.user!;
 
-      final data = await _api.post(ApiConstants.register, body: {
-        'name': name,
-        'email': email,
-        'firebaseUid': user.uid,
-        if (phone != null) 'phoneNumber': phone,
-      });
-      _user = UserModel.fromJson(data);
+      // Step 2: Set display name on Firebase BEFORE getting token,
+      // so backend receives it via decodedToken.getName()
+      await firebaseUser.updateDisplayName(name);
+
+      // Step 3: Send token to backend as query param — endpoint only accepts @RequestParam
+      // Name/phone/role are ignored here; backend auto-creates from Firebase token data.
+      // To persist the display name, update Firebase profile first so decodedToken.getName() works.
+      await firebaseUser.updateDisplayName(name);
+      final refreshedToken = await firebaseUser.getIdToken(true);
+      if (refreshedToken == null) throw Exception('Impossible d\'obtenir le token Firebase.');
+
+      final loginResponse = await _api.postWithQuery(
+        ApiConstants.firebaseToken,
+        queryParams: {'token': refreshedToken},
+      );
+
+      // Extract nested user from LoginResponse
+      final userData = loginResponse['user'];
+      if (userData == null) throw Exception('Réponse invalide du serveur.');
+      _user = UserModel.fromJson(userData);
       _error = null;
       notifyListeners();
       return true;
     } on FirebaseAuthException catch (e) {
       _error = _firebaseMsg(e.code);
+      debugPrint('🔴 FirebaseAuthException: ${e.code} — ${e.message}');
+      notifyListeners();
     } on ApiException catch (e) {
       _error = e.message;
-      // Rollback Firebase user if backend failed
+      debugPrint('🔴 ApiException: ${e.statusCode} — ${e.message}');
+      // Rollback Firebase user if backend registration failed
       await _auth.currentUser?.delete();
-    } catch (e) {
-      _error = e.toString();
+      notifyListeners();
+    } catch (e, stack) {
+      _error = 'Une erreur inattendue est survenue.';
+      debugPrint('🔴 Unknown error during register: $e');
+      debugPrint('🔴 Stack: $stack');
+      await _auth.currentUser?.delete();
+      notifyListeners();
     } finally {
       _setLoading(false);
     }
@@ -102,20 +107,31 @@ class AuthProvider with ChangeNotifier {
     required String password,
   }) async {
     _setLoading(true);
+    _error = null;
     try {
-      await _auth.signInWithEmailAndPassword(
+      // Step 1: Authenticate with Firebase
+      final credential = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      await _syncUser();
+      final firebaseUser = credential.user!;
+
+      // Step 2: Send Firebase token to backend (sequence diagram step 3)
+      await _syncWithBackend(firebaseUser);
+
       _error = null;
       return true;
     } on FirebaseAuthException catch (e) {
       _error = _firebaseMsg(e.code);
+      notifyListeners();
     } on ApiException catch (e) {
       _error = e.message;
+      await _auth.signOut();
+      notifyListeners();
     } catch (e) {
-      _error = e.toString();
+      _error = 'Une erreur inattendue est survenue.';
+      await _auth.signOut();
+      notifyListeners();
     } finally {
       _setLoading(false);
     }
@@ -137,8 +153,8 @@ class AuthProvider with ChangeNotifier {
     _setLoading(true);
     try {
       final data = await _api.put(ApiConstants.userProfile, body: {
-        if (name != null) 'name': name,
-        if (phone != null) 'phoneNumber': phone,
+        if (name != null && name.isNotEmpty) 'name': name,
+        if (phone != null && phone.isNotEmpty) 'phoneNumber': phone,
         if (bio != null) 'bio': bio,
         if (address != null) 'address': address,
       });
@@ -160,9 +176,25 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> _syncUser() async {
-    final data = await _api.get(ApiConstants.me);
-    _user = UserModel.fromJson(data);
+  /// Follows sequence diagram steps 3-7:
+  /// Flutter sends Firebase token → Backend validates with Firebase →
+  /// Backend creates/retrieves user → Returns user data
+  Future<void> _syncWithBackend(User firebaseUser) async {
+    final idToken = await firebaseUser.getIdToken(true);
+    if (idToken == null) throw Exception('Impossible d\'obtenir le token Firebase.');
+
+    debugPrint('🔵 Syncing with backend, uid: ${firebaseUser.uid}');
+
+    final loginResponse = await _api.postWithQuery(
+      ApiConstants.firebaseToken,
+      queryParams: {'token': idToken},
+    );
+
+    debugPrint('🔵 Backend response: $loginResponse');
+
+    final userData = loginResponse['user'];
+    if (userData == null) throw Exception('Réponse invalide du serveur.');
+    _user = UserModel.fromJson(userData);
     notifyListeners();
   }
 
@@ -172,12 +204,14 @@ class AuthProvider with ChangeNotifier {
   }
 
   String _firebaseMsg(String code) => switch (code) {
-        'user-not-found' => 'Aucun compte trouvé.',
-        'wrong-password' => 'Mot de passe incorrect.',
-        'email-already-in-use' => 'Email déjà utilisé.',
-        'weak-password' => 'Mot de passe trop faible.',
-        'invalid-email' => 'Email invalide.',
-        'too-many-requests' => 'Trop de tentatives. Réessayez.',
-        _ => 'Erreur d\'authentification.',
-      };
+    'user-not-found' => 'Aucun compte trouvé avec cet email.',
+    'wrong-password' => 'Mot de passe incorrect.',
+    'invalid-credential' => 'Email ou mot de passe incorrect.',
+    'email-already-in-use' => 'Un compte existe déjà avec cet email.',
+    'weak-password' => 'Mot de passe trop faible (minimum 6 caractères).',
+    'invalid-email' => 'Adresse email invalide.',
+    'too-many-requests' => 'Trop de tentatives. Réessayez dans quelques minutes.',
+    'network-request-failed' => 'Erreur réseau. Vérifiez votre connexion.',
+    _ => 'Erreur d\'authentification ($code).',
+  };
 }

@@ -7,10 +7,12 @@ import '../../core/utils/formatters.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/favourite_provider.dart';
 import '../../providers/message_provider.dart';
+import '../../providers/visit_provider.dart';
 import '../../widgets/navigation/bottom_nav_bar.dart';
 import 'edit_profile_screen.dart';
 import '../messages/conversations_screen.dart';
 import '../favourites/favourites_screen.dart';
+import '../visits/visits_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -30,10 +32,8 @@ class ProfileScreen extends StatelessWidget {
               child: Column(
                 children: [
                   const SizedBox(height: AppSizes.lg),
-                  // ── Quick stats ──────────────────────────────────
                   _StatsRow(),
                   const SizedBox(height: AppSizes.lg),
-                  // ── Navigation items ─────────────────────────────
                   _Section(children: [
                     _Item(
                       icon: Icons.favorite_border,
@@ -41,8 +41,16 @@ class ProfileScreen extends StatelessWidget {
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const FavouritesScreen(),
-                        ),
+                            builder: (_) => const FavouritesScreen()),
+                      ),
+                    ),
+                    _Item(
+                      icon: Icons.calendar_today_outlined,
+                      label: AppStrings.visits,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const VisitsScreen()),
                       ),
                     ),
                     _Item(
@@ -51,8 +59,7 @@ class ProfileScreen extends StatelessWidget {
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const ConversationsScreen(),
-                        ),
+                            builder: (_) => const ConversationsScreen()),
                       ),
                     ),
                     _Item(
@@ -61,13 +68,11 @@ class ProfileScreen extends StatelessWidget {
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const EditProfileScreen(),
-                        ),
+                            builder: (_) => const EditProfileScreen()),
                       ),
                     ),
                   ]),
                   const SizedBox(height: AppSizes.md),
-                  // ── Danger zone ─────────────────────────────────
                   _Section(children: [
                     _Item(
                       icon: Icons.logout,
@@ -112,8 +117,6 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
-// ── Profile SliverAppBar ──────────────────────────────────────────────────────
-
 class _Header extends StatelessWidget {
   final dynamic user;
   const _Header({required this.user});
@@ -121,7 +124,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SliverAppBar(
-      expandedHeight: 240,
+      expandedHeight: 250,
       pinned: true,
       backgroundColor: AppColors.primary,
       flexibleSpace: FlexibleSpaceBar(
@@ -145,7 +148,7 @@ class _Header extends StatelessWidget {
                       backgroundImage: user.profileImageUrl != null
                           ? NetworkImage(user.profileImageUrl)
                           : const AssetImage('assets/images/profile.jpeg')
-                              as ImageProvider,
+                      as ImageProvider,
                     ),
                     Positioned(
                       bottom: 0,
@@ -170,15 +173,34 @@ class _Header extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: AppSizes.sm),
-                Text(user.name,
-                    style: const TextStyle(
-                        color: AppColors.textWhite,
-                        fontSize: AppSizes.fontXl,
-                        fontWeight: FontWeight.bold)),
+                Text(
+                  user.name,
+                  style: const TextStyle(
+                      color: AppColors.textWhite,
+                      fontSize: AppSizes.fontXl,
+                      fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: AppSizes.xs),
-                Text(user.email,
+                Text(
+                  user.email,
+                  style: const TextStyle(
+                      color: Colors.white70, fontSize: AppSizes.fontSm),
+                ),
+                const SizedBox(height: AppSizes.xs),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSizes.sm, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius:
+                    BorderRadius.circular(AppSizes.radiusFull),
+                  ),
+                  child: Text(
+                    user.role == 'AGENT' ? 'Agent Immobilier' : 'Particulier',
                     style: const TextStyle(
-                        color: Colors.white70, fontSize: AppSizes.fontSm)),
+                        color: Colors.white70, fontSize: AppSizes.fontXs),
+                  ),
+                ),
                 const SizedBox(height: AppSizes.xs),
                 Text(
                   'Membre depuis ${Formatters.date(user.createdAt)}',
@@ -194,13 +216,11 @@ class _Header extends StatelessWidget {
   }
 }
 
-// ── Quick Stats Row ────────────────────────────────────────────────────────────
-
 class _StatsRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Consumer<FavouriteProvider>(
-      builder: (_, favs, __) => Container(
+    return Consumer3<FavouriteProvider, MessageProvider, VisitProvider>(
+      builder: (_, favs, msgs, visits, __) => Container(
         margin: const EdgeInsets.symmetric(horizontal: AppSizes.md),
         padding: const EdgeInsets.symmetric(
             vertical: AppSizes.md, horizontal: AppSizes.lg),
@@ -213,34 +233,30 @@ class _StatsRow extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             _Stat(
-              label: 'Favoris',
-              value: '${favs.favourites.length}',
-              icon: Icons.favorite,
-            ),
+                label: 'Favoris',
+                value: '${favs.favourites.length}',
+                icon: Icons.favorite),
             _divider(),
-            Consumer<MessageProvider>(
-              builder: (_, mp, __) => _Stat(
+            _Stat(
                 label: 'Messages',
-                value: '${mp.conversations.length}',
-                icon: Icons.chat_bubble,
-              ),
-            ),
+                value: '${msgs.conversations.length}',
+                icon: Icons.chat_bubble),
+            _divider(),
+            _Stat(
+                label: 'Visites',
+                value: '${visits.myVisits.length}',
+                icon: Icons.calendar_today),
           ],
         ),
       ),
     );
   }
 
-  Widget _divider() => Container(
-        width: 1,
-        height: 40,
-        color: AppColors.background,
-      );
+  Widget _divider() => Container(width: 1, height: 40, color: AppColors.background);
 }
 
 class _Stat extends StatelessWidget {
-  final String label;
-  final String value;
+  final String label, value;
   final IconData icon;
   const _Stat({required this.label, required this.value, required this.icon});
 
@@ -260,8 +276,6 @@ class _Stat extends StatelessWidget {
     );
   }
 }
-
-// ── Menu section card ─────────────────────────────────────────────────────────
 
 class _Section extends StatelessWidget {
   final List<Widget> children;
@@ -286,11 +300,7 @@ class _Item extends StatelessWidget {
   final String label;
   final Color? color;
   final VoidCallback onTap;
-  const _Item(
-      {required this.icon,
-      required this.label,
-      required this.onTap,
-      this.color});
+  const _Item({required this.icon, required this.label, required this.onTap, this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -304,10 +314,10 @@ class _Item extends StatelessWidget {
         ),
         child: Icon(icon, color: c, size: 20),
       ),
-      title:
-          Text(label, style: TextStyle(color: c, fontWeight: FontWeight.w500)),
-      trailing:
-          const Icon(Icons.chevron_right, color: AppColors.textLight, size: 20),
+      title: Text(label,
+          style: TextStyle(color: c, fontWeight: FontWeight.w500)),
+      trailing: const Icon(Icons.chevron_right,
+          color: AppColors.textLight, size: 20),
       onTap: onTap,
     );
   }
