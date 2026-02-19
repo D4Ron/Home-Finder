@@ -27,27 +27,40 @@ class VisitModel {
     required this.createdAt,
   });
 
-  factory VisitModel.fromJson(Map<String, dynamic> j) => VisitModel(
-    id: j['id'],
-    propertyId: j['property']?['id'] ?? j['propertyId'] ?? 0,
-    propertyTitle: j['property']?['title'] ?? j['propertyTitle'] ?? '',
-    propertyAddress: j['property']?['address'] ?? j['propertyAddress'],
-    propertyImageUrl: (j['property']?['imageUrls'] as List?)?.isNotEmpty == true
-        ? j['property']['imageUrls'][0]
-        : null,
-    visitorId: j['visitor']?['id'] ?? j['visitorId'] ?? 0,
-    visitorName: j['visitor']?['name'] ?? j['visitorName'] ?? '',
-    ownerId: j['property']?['owner']?['id'] ?? j['ownerId'] ?? 0,
-    scheduledDate: DateTime.parse(j['scheduledDate']),
-    status: j['status'] ?? 'PENDING',
-    notes: j['notes'],
-    createdAt: j['createdAt'] != null
-        ? DateTime.parse(j['createdAt'])
-        : DateTime.now(),
-  );
+  factory VisitModel.fromJson(Map<String, dynamic> j) {
+    // Spring Boot VisitService sets visit.setUser(user) — so the JSON field
+    // is "user", NOT "visitor". We fall back to the old keys for safety.
+    final userObj     = j['user']     as Map<String, dynamic>?
+        ?? j['visitor']  as Map<String, dynamic>?;
+    final propertyObj = j['property'] as Map<String, dynamic>?;
+
+    // Image: property.imageUrls[0] if present
+    String? imageUrl;
+    final imageUrls = propertyObj?['imageUrls'];
+    if (imageUrls is List && imageUrls.isNotEmpty) {
+      imageUrl = imageUrls[0] as String?;
+    }
+
+    return VisitModel(
+      id:              j['id'],
+      propertyId:      propertyObj?['id']      ?? j['propertyId']      ?? 0,
+      propertyTitle:   propertyObj?['title']   ?? j['propertyTitle']   ?? '',
+      propertyAddress: propertyObj?['address'] ?? j['propertyAddress'],
+      propertyImageUrl: imageUrl,
+      visitorId:   userObj?['id']   ?? j['visitorId']   ?? j['userId']   ?? 0,
+      visitorName: userObj?['name'] ?? j['visitorName'] ?? j['userName'] ?? '',
+      ownerId:     propertyObj?['owner']?['id'] ?? j['ownerId'] ?? 0,
+      scheduledDate: DateTime.parse(j['scheduledDate']),
+      status:  j['status'] ?? 'PENDING',
+      notes:   j['notes'],
+      createdAt: j['createdAt'] != null
+          ? DateTime.parse(j['createdAt'])
+          : DateTime.now(),
+    );
+  }
 
   String get statusLabel => switch (status) {
-    'PENDING' => 'En attente',
+    'PENDING'   => 'En attente',
     'CONFIRMED' => 'Confirmée',
     'CANCELLED' => 'Annulée',
     'COMPLETED' => 'Effectuée',

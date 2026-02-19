@@ -24,19 +24,31 @@ class MessageModel {
   });
 
   factory MessageModel.fromJson(Map<String, dynamic> j) => MessageModel(
-    id: j['id'],
-    senderId: j['sender']?['id'] ?? j['senderId'],
-    senderName: j['sender']?['name'] ?? '',
-    senderImageUrl: j['sender']?['profileImageUrl'],
-    receiverId: j['receiver']?['id'] ?? j['receiverId'],
-    content: j['content'],
-    read: j['read'] ?? false,
-    messageType: j['messageType'] ?? 'TEXT',
-    propertyId: j['property']?['id'],
-    createdAt: DateTime.parse(j['createdAt']),
-  );
+        id: j['id'],
+        senderId: j['sender']?['id'] ?? j['senderId'] ?? 0,
+        senderName: j['sender']?['name'] ?? '',
+        senderImageUrl: j['sender']?['profileImageUrl'],
+        receiverId: j['receiver']?['id'] ?? j['receiverId'] ?? 0,
+        content: j['content'] ?? '',
+        read: j['read'] ?? false,
+        messageType: j['messageType'] ?? 'TEXT',
+        propertyId: j['property']?['id'],
+        createdAt: j['createdAt'] != null
+            ? DateTime.parse(j['createdAt'])
+            : DateTime.now(),
+      );
 }
 
+/// Maps to Spring Boot's ConversationSummaryResponse which has the shape:
+/// {
+///   "conversationId": "1_2",
+///   "otherUser": { "id": 2, "name": "...", "profileImageUrl": "..." },
+///   "property":  { "id": 5, "title": "..." },   ← nullable
+///   "lastMessage": "...",
+///   "lastMessageDate": "...",
+///   "unreadCount": 0,
+///   "lastMessageFromMe": false
+/// }
 class ConversationModel {
   final int otherUserId;
   final String otherUserName;
@@ -58,15 +70,26 @@ class ConversationModel {
     this.propertyTitle,
   });
 
-  factory ConversationModel.fromJson(Map<String, dynamic> j) =>
-      ConversationModel(
-        otherUserId: j['otherUserId'],
-        otherUserName: j['otherUserName'],
-        otherUserImageUrl: j['otherUserImageUrl'],
-        lastMessage: j['lastMessage'],
-        unreadCount: j['unreadCount'] ?? 0,
-        lastMessageAt: DateTime.parse(j['lastMessageAt']),
-        propertyId: j['propertyId'],
-        propertyTitle: j['propertyTitle'],
-      );
+  factory ConversationModel.fromJson(Map<String, dynamic> j) {
+    // Backend returns nested objects: otherUser{id,name,...} and property{id,title,...}
+    final otherUser = j['otherUser'] as Map<String, dynamic>?;
+    final property = j['property'] as Map<String, dynamic>?;
+
+    return ConversationModel(
+      // Pull from nested otherUser object
+      otherUserId: otherUser?['id'] ?? j['otherUserId'] ?? 0,
+      otherUserName: otherUser?['name'] ?? j['otherUserName'] ?? '',
+      otherUserImageUrl:
+          otherUser?['profileImageUrl'] ?? j['otherUserImageUrl'],
+
+      lastMessage: j['lastMessage'] ?? '',
+      unreadCount: j['unreadCount'] ?? 0,
+      // Backend field is lastMessageDate (not lastMessageAt)
+      lastMessageAt: DateTime.parse(j['lastMessageDate'] ?? j['lastMessageAt']),
+
+      // Pull from nested property object
+      propertyId: property?['id'] ?? j['propertyId'],
+      propertyTitle: property?['title'] ?? j['propertyTitle'],
+    );
+  }
 }

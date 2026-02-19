@@ -41,18 +41,41 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<MessageProvider>().loadMessages(
+      context
+          .read<MessageProvider>()
+          .loadMessages(
             widget.otherUserId,
             propertyId: widget.propertyId,
-          );
+          )
+          .then((_) => _scrollToBottom());
+
+      // Listen for new messages to auto-scroll
+      context.read<MessageProvider>().addListener(_onMessagesChanged);
+    });
+  }
+
+  void _onMessagesChanged() {
+    _scrollToBottom();
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollCtrl.hasClients && _scrollCtrl.position.maxScrollExtent > 0) {
+        _scrollCtrl.animateTo(
+          _scrollCtrl.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
     });
   }
 
   @override
   void dispose() {
+    _msgProvider.removeListener(_onMessagesChanged); // ← remove listener
     _ctrl.dispose();
     _scrollCtrl.dispose();
-    Future.microtask(() => _msgProvider.clearMessages());
+    _msgProvider.clearMessages();
     super.dispose();
   }
 
@@ -65,7 +88,10 @@ class _ChatScreenState extends State<ChatScreen> {
           content: text,
           propertyId: widget.propertyId,
         );
-    // Scroll to bottom
+    // refresh conversation list preview in background
+    context.read<MessageProvider>().loadConversations();
+
+    // Explicit scroll for immediate feedback
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollCtrl.hasClients) {
         _scrollCtrl.animateTo(

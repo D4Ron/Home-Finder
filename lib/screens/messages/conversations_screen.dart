@@ -62,7 +62,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                   backgroundImage: c.otherUserImageUrl != null
                       ? NetworkImage(c.otherUserImageUrl!)
                       : const AssetImage('assets/images/profile.jpeg')
-                  as ImageProvider,
+                          as ImageProvider,
                 ),
                 title: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -74,7 +74,8 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                     ),
                     Text(Formatters.timeAgo(c.lastMessageAt),
                         style: const TextStyle(
-                            color: AppColors.textGrey, fontSize: AppSizes.fontXs)),
+                            color: AppColors.textGrey,
+                            fontSize: AppSizes.fontXs)),
                   ],
                 ),
                 subtitle: Row(
@@ -93,7 +94,7 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                         decoration: BoxDecoration(
                           color: AppColors.primary,
                           borderRadius:
-                          BorderRadius.circular(AppSizes.radiusFull),
+                              BorderRadius.circular(AppSizes.radiusFull),
                         ),
                         child: Text('${c.unreadCount}',
                             style: const TextStyle(
@@ -106,13 +107,14 @@ class _ConversationsScreenState extends State<ConversationsScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (_) => ChatScreen(
-                      otherUserId:   c.otherUserId,
+                      otherUserId: c.otherUserId,
                       otherUserName: c.otherUserName,
-                      propertyId:    c.propertyId,
+                      propertyId: c.propertyId,
                       propertyTitle: c.propertyTitle,
                     ),
                   ),
-                ),
+                ).then(
+                    (_) => context.read<MessageProvider>().loadConversations()),
               );
             },
           ),

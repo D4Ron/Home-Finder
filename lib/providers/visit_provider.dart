@@ -22,9 +22,11 @@ class VisitProvider with ChangeNotifier {
     _loading = true;
     notifyListeners();
     try {
-      var endpoint = ApiConstants.visits;
-      if (status != null) endpoint += '?status=$status';
-      final data = await _api.get(endpoint);
+      // Backend: GET /visits?status=PENDING (optional query param)
+      final Map<String, String>? queryParams =
+      status != null ? {'status': status} : null;
+
+      final data = await _api.get(ApiConstants.visits, queryParams: queryParams);
       _myVisits = (data as List).map((j) => VisitModel.fromJson(j)).toList();
       _error = null;
     } catch (e) {
@@ -78,6 +80,7 @@ class VisitProvider with ChangeNotifier {
         String? notes,
       }) async {
     try {
+      // Backend: PATCH /visits/{id}/status — returns VisitResponse
       final data = await _api.patch(ApiConstants.visitStatus(visitId), body: {
         'status': status,
         if (notes != null) 'notes': notes,
@@ -94,11 +97,15 @@ class VisitProvider with ChangeNotifier {
 
   Future<bool> cancelVisit(int visitId, {String? reason}) async {
     try {
-      final data = await _api.post(ApiConstants.visitCancel(visitId), body: {
+      // Backend: POST /visits/{id}/cancel — returns ApiResponse<Void>, data is null.
+      // We do NOT try to parse a VisitModel from this response.
+      await _api.post(ApiConstants.visitCancel(visitId), body: {
         if (reason != null) 'reason': reason,
       });
-      final updated = VisitModel.fromJson(data);
-      _updateLocal(updated);
+
+      // Update locally: set the visit status to CANCELLED in both lists
+      _cancelLocal(visitId, reason);
+      notifyListeners();
       return true;
     } catch (e) {
       _error = e.toString();
@@ -113,5 +120,45 @@ class VisitProvider with ChangeNotifier {
     final idx2 = _propertyVisits.indexWhere((v) => v.id == updated.id);
     if (idx2 != -1) _propertyVisits[idx2] = updated;
     notifyListeners();
+  }
+
+  /// Called after a successful cancel (backend returns void, so we patch locally)
+  void _cancelLocal(int visitId, String? reason) {
+    final idx = _myVisits.indexWhere((v) => v.id == visitId);
+    if (idx != -1) {
+      final v = _myVisits[idx];
+      _myVisits[idx] = VisitModel(
+        id:               v.id,
+        propertyId:       v.propertyId,
+        propertyTitle:    v.propertyTitle,
+        propertyAddress:  v.propertyAddress,
+        propertyImageUrl: v.propertyImageUrl,
+        visitorId:        v.visitorId,
+        visitorName:      v.visitorName,
+        ownerId:          v.ownerId,
+        scheduledDate:    v.scheduledDate,
+        status:           'CANCELLED',
+        notes:            reason ?? v.notes,
+        createdAt:        v.createdAt,
+      );
+    }
+    final idx2 = _propertyVisits.indexWhere((v) => v.id == visitId);
+    if (idx2 != -1) {
+      final v = _propertyVisits[idx2];
+      _propertyVisits[idx2] = VisitModel(
+        id:               v.id,
+        propertyId:       v.propertyId,
+        propertyTitle:    v.propertyTitle,
+        propertyAddress:  v.propertyAddress,
+        propertyImageUrl: v.propertyImageUrl,
+        visitorId:        v.visitorId,
+        visitorName:      v.visitorName,
+        ownerId:          v.ownerId,
+        scheduledDate:    v.scheduledDate,
+        status:           'CANCELLED',
+        notes:            reason ?? v.notes,
+        createdAt:        v.createdAt,
+      );
+    }
   }
 }
