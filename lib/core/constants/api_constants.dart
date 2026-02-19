@@ -1,5 +1,6 @@
 class ApiConstants {
-  static const baseUrl = 'http://10.0.2.2:8080/api'; // Android emulator → localhost
+  // Physical device - Use your PC's Wi-Fi IP
+  static const baseUrl = 'http://192.168.1.70:8080/api';
 
   // Auth
   static const register = '/auth/register';
@@ -31,7 +32,7 @@ class ApiConstants {
 
   static const timeout = Duration(seconds: 30);
 
-  // Replace :id placeholder
+
   static String withId(String route, dynamic id) =>
       route.replaceAll(':id', '$id');
 }

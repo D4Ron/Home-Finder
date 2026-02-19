@@ -5,8 +5,12 @@ import '../../core/constants/app_sizes.dart';
 import '../../core/constants/app_strings.dart';
 import '../../core/utils/formatters.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/favourite_provider.dart';
+import '../../providers/message_provider.dart';
 import '../../widgets/navigation/bottom_nav_bar.dart';
 import 'edit_profile_screen.dart';
+import '../messages/conversations_screen.dart';
+import '../favourites/favourites_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -26,57 +30,44 @@ class ProfileScreen extends StatelessWidget {
               child: Column(
                 children: [
                   const SizedBox(height: AppSizes.lg),
+                  // ── Quick stats ──────────────────────────────────
+                  _StatsRow(),
+                  const SizedBox(height: AppSizes.lg),
+                  // ── Navigation items ─────────────────────────────
                   _Section(children: [
-                    _Item(
-                      icon: Icons.grid_view,
-                      label: AppStrings.myListings,
-                      onTap: () {},
-                    ),
                     _Item(
                       icon: Icons.favorite_border,
                       label: AppStrings.savedItems,
-                      onTap: () {},
-                    ),
-                    _Item(
-                      icon: Icons.calendar_today_outlined,
-                      label: AppStrings.visits,
-                      onTap: () {},
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const FavouritesScreen(),
+                        ),
+                      ),
                     ),
                     _Item(
                       icon: Icons.chat_bubble_outline,
                       label: AppStrings.chats,
-                      onTap: () {},
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ConversationsScreen(),
+                        ),
+                      ),
+                    ),
+                    _Item(
+                      icon: Icons.edit_outlined,
+                      label: AppStrings.editProfile,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const EditProfileScreen(),
+                        ),
+                      ),
                     ),
                   ]),
                   const SizedBox(height: AppSizes.md),
-                  _Section(children: [
-                    _Item(
-                      icon: Icons.settings_outlined,
-                      label: AppStrings.settings,
-                      onTap: () {},
-                    ),
-                    _Item(
-                      icon: Icons.star_border,
-                      label: AppStrings.becomeAgent,
-                      onTap: () {},
-                    ),
-                    _Item(
-                      icon: Icons.people_outline,
-                      label: AppStrings.invite,
-                      onTap: () {},
-                    ),
-                    _Item(
-                      icon: Icons.help_outline,
-                      label: AppStrings.helpCenter,
-                      onTap: () {},
-                    ),
-                    _Item(
-                      icon: Icons.info_outline,
-                      label: AppStrings.about,
-                      onTap: () {},
-                    ),
-                  ]),
-                  const SizedBox(height: AppSizes.md),
+                  // ── Danger zone ─────────────────────────────────
                   _Section(children: [
                     _Item(
                       icon: Icons.logout,
@@ -154,7 +145,7 @@ class _Header extends StatelessWidget {
                       backgroundImage: user.profileImageUrl != null
                           ? NetworkImage(user.profileImageUrl)
                           : const AssetImage('assets/images/profile.jpeg')
-                      as ImageProvider,
+                              as ImageProvider,
                     ),
                     Positioned(
                       bottom: 0,
@@ -203,6 +194,73 @@ class _Header extends StatelessWidget {
   }
 }
 
+// ── Quick Stats Row ────────────────────────────────────────────────────────────
+
+class _StatsRow extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<FavouriteProvider>(
+      builder: (_, favs, __) => Container(
+        margin: const EdgeInsets.symmetric(horizontal: AppSizes.md),
+        padding: const EdgeInsets.symmetric(
+            vertical: AppSizes.md, horizontal: AppSizes.lg),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+          boxShadow: [BoxShadow(color: AppColors.shadow, blurRadius: 6)],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _Stat(
+              label: 'Favoris',
+              value: '${favs.favourites.length}',
+              icon: Icons.favorite,
+            ),
+            _divider(),
+            Consumer<MessageProvider>(
+              builder: (_, mp, __) => _Stat(
+                label: 'Messages',
+                value: '${mp.conversations.length}',
+                icon: Icons.chat_bubble,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _divider() => Container(
+        width: 1,
+        height: 40,
+        color: AppColors.background,
+      );
+}
+
+class _Stat extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  const _Stat({required this.label, required this.value, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Icon(icon, color: AppColors.primary, size: 22),
+        const SizedBox(height: 4),
+        Text(value,
+            style: const TextStyle(
+                fontWeight: FontWeight.bold, fontSize: AppSizes.fontLg)),
+        Text(label,
+            style: const TextStyle(
+                color: AppColors.textGrey, fontSize: AppSizes.fontXs)),
+      ],
+    );
+  }
+}
+
 // ── Menu section card ─────────────────────────────────────────────────────────
 
 class _Section extends StatelessWidget {
@@ -225,10 +283,14 @@ class _Section extends StatelessWidget {
 
 class _Item extends StatelessWidget {
   final IconData icon;
-  final String   label;
-  final Color?   color;
+  final String label;
+  final Color? color;
   final VoidCallback onTap;
-  const _Item({required this.icon, required this.label, required this.onTap, this.color});
+  const _Item(
+      {required this.icon,
+      required this.label,
+      required this.onTap,
+      this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -242,8 +304,10 @@ class _Item extends StatelessWidget {
         ),
         child: Icon(icon, color: c, size: 20),
       ),
-      title: Text(label, style: TextStyle(color: c, fontWeight: FontWeight.w500)),
-      trailing: const Icon(Icons.chevron_right, color: AppColors.textLight, size: 20),
+      title:
+          Text(label, style: TextStyle(color: c, fontWeight: FontWeight.w500)),
+      trailing:
+          const Icon(Icons.chevron_right, color: AppColors.textLight, size: 20),
       onTap: onTap,
     );
   }

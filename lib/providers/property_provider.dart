@@ -6,33 +6,35 @@ import '../core/constants/api_constants.dart';
 class PropertyProvider with ChangeNotifier {
   final ApiService _api;
 
-  List<PropertyModel> _properties   = [];
+  List<PropertyModel> _properties = [];
   List<PropertyModel> _myProperties = [];
-  PropertyModel?      _detail;
+  PropertyModel? _detail;
 
-  bool   _loading      = false;
-  bool   _loadingMore  = false;
+  bool _loading = false;
+  bool _loadingMore = false;
+  bool _detailLoading = false; // ← separate from list loading
   String? _error;
 
-  int  _page       = 0;
-  bool _hasMore    = true;
+  int _page = 0;
+  bool _hasMore = true;
 
   // Active filters — preserved between loads
   String? _filterCity;
   String? _filterType;
   double? _filterMin;
   double? _filterMax;
-  int?    _filterBeds;
+  int? _filterBeds;
 
   PropertyProvider(this._api);
 
-  List<PropertyModel> get properties   => _properties;
+  List<PropertyModel> get properties => _properties;
   List<PropertyModel> get myProperties => _myProperties;
-  PropertyModel?      get detail       => _detail;
-  bool get loading     => _loading;
+  PropertyModel? get detail => _detail;
+  bool get loading => _loading;
   bool get loadingMore => _loadingMore;
-  bool get hasMore     => _hasMore;
-  String? get error    => _error;
+  bool get detailLoading => _detailLoading;
+  bool get hasMore => _hasMore;
+  String? get error => _error;
 
   // ── Search / list ──────────────────────────────────────────────────────────
 
@@ -41,8 +43,8 @@ class PropertyProvider with ChangeNotifier {
     String? type,
     double? minPrice,
     double? maxPrice,
-    int?    minBeds,
-    bool    refresh = false,
+    int? minBeds,
+    bool refresh = false,
   }) async {
     if (refresh) {
       _page = 0;
@@ -50,8 +52,8 @@ class PropertyProvider with ChangeNotifier {
       _properties = [];
       _filterCity = city;
       _filterType = type;
-      _filterMin  = minPrice;
-      _filterMax  = maxPrice;
+      _filterMin = minPrice;
+      _filterMax = maxPrice;
       _filterBeds = minBeds;
     }
 
@@ -60,14 +62,14 @@ class PropertyProvider with ChangeNotifier {
 
     try {
       final data = await _api.post(ApiConstants.propertySearch, body: {
-        if (_filterCity != null) 'city':        _filterCity,
-        if (_filterType != null) 'propertyType':_filterType,
-        if (_filterMin  != null) 'minPrice':    _filterMin,
-        if (_filterMax  != null) 'maxPrice':    _filterMax,
+        if (_filterCity != null) 'city': _filterCity,
+        if (_filterType != null) 'propertyType': _filterType,
+        if (_filterMin != null) 'minPrice': _filterMin,
+        if (_filterMax != null) 'maxPrice': _filterMax,
         if (_filterBeds != null) 'minBedrooms': _filterBeds,
         'page': _page,
         'size': 10,
-        'sortBy':    'createdAt',
+        'sortBy': 'createdAt',
         'sortOrder': 'DESC',
       });
 
@@ -93,32 +95,36 @@ class PropertyProvider with ChangeNotifier {
   // ── Detail ─────────────────────────────────────────────────────────────────
 
   Future<void> loadDetail(int id) async {
-    _setLoading(true);
+    _detailLoading = true;
+    _detail = null;
+    notifyListeners();
     try {
       final data = await _api.get('${ApiConstants.properties}/$id');
       _detail = PropertyModel.fromJson(data);
-      _error  = null;
+      _error = null;
     } catch (e) {
       _error = e.toString();
     } finally {
-      _setLoading(false);
+      _detailLoading = false;
+      notifyListeners();
     }
   }
 
   // ── My listings ────────────────────────────────────────────────────────────
 
   Future<void> loadMyProperties() async {
-    _setLoading(true);
+    _loading = true;
+    notifyListeners();
     try {
       final data = await _api.get(ApiConstants.myProperties);
-      _myProperties = (data as List)
-          .map((j) => PropertyModel.fromJson(j))
-          .toList();
+      _myProperties =
+          (data as List).map((j) => PropertyModel.fromJson(j)).toList();
       _error = null;
     } catch (e) {
       _error = e.toString();
     } finally {
-      _setLoading(false);
+      _loading = false;
+      notifyListeners();
     }
   }
 
@@ -139,6 +145,14 @@ class PropertyProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void _setLoading(bool v) { _loading = v; notifyListeners(); }
-  void _setLoadingMore(bool v) { _loadingMore = v; notifyListeners(); }
+  // ── Internal helpers ────────────────────────────────────────────────────────
+  void _setLoading(bool v) {
+    _loading = v;
+    notifyListeners();
+  }
+
+  void _setLoadingMore(bool v) {
+    _loadingMore = v;
+    notifyListeners();
+  }
 }

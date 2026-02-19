@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_sizes.dart';
 import '../../core/utils/formatters.dart';
 import '../../data/models/property_model.dart';
+import '../../providers/favourite_provider.dart';
 
 class PropertyCard extends StatelessWidget {
   final PropertyModel property;
-  final VoidCallback  onTap;
+  final VoidCallback onTap;
   final VoidCallback? onFavouriteTap;
-  final bool          showBadge;
+  final bool showBadge;
 
   const PropertyCard({
     super.key,
@@ -31,7 +33,10 @@ class PropertyCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _Image(property: property, onFavTap: onFavouriteTap, showBadge: showBadge),
+            _Image(
+                property: property,
+                onFavTap: onFavouriteTap,
+                showBadge: showBadge),
             _Info(property: property),
           ],
         ),
@@ -43,8 +48,9 @@ class PropertyCard extends StatelessWidget {
 class _Image extends StatelessWidget {
   final PropertyModel property;
   final VoidCallback? onFavTap;
-  final bool          showBadge;
-  const _Image({required this.property, this.onFavTap, required this.showBadge});
+  final bool showBadge;
+  const _Image(
+      {required this.property, this.onFavTap, required this.showBadge});
 
   @override
   Widget build(BuildContext context) {
@@ -56,12 +62,12 @@ class _Image extends StatelessWidget {
           ),
           child: property.imageUrls.isNotEmpty
               ? Image.network(
-            property.imageUrls.first,
-            height: AppSizes.propertyCardH,
-            width: double.infinity,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _placeholder(),
-          )
+                  property.imageUrls.first,
+                  height: AppSizes.propertyCardH,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _placeholder(),
+                )
               : _placeholder(),
         ),
         if (showBadge)
@@ -76,28 +82,33 @@ class _Image extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppSizes.radiusSm),
               ),
               child: const Text('NOUVEAU',
-                  style: TextStyle(color: Colors.white,
-                      fontSize: AppSizes.fontXs, fontWeight: FontWeight.bold)),
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: AppSizes.fontXs,
+                      fontWeight: FontWeight.bold)),
             ),
           ),
         if (onFavTap != null)
           Positioned(
             top: AppSizes.sm,
             right: AppSizes.sm,
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: AppColors.surface,
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                icon: Icon(
-                  property.isFavourited ? Icons.favorite : Icons.favorite_border,
-                  color: property.isFavourited
-                      ? AppColors.favourite
-                      : AppColors.textGrey,
-                  size: AppSizes.fontLg,
-                ),
-                onPressed: onFavTap,
-              ),
+            child: Consumer<FavouriteProvider>(
+              builder: (_, favs, __) {
+                final isFav = favs.isFavourite(property.id);
+                return CircleAvatar(
+                  radius: 18,
+                  backgroundColor: AppColors.surface,
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    icon: Icon(
+                      isFav ? Icons.favorite : Icons.favorite_border,
+                      color: isFav ? AppColors.favourite : AppColors.textGrey,
+                      size: AppSizes.fontLg,
+                    ),
+                    onPressed: onFavTap,
+                  ),
+                );
+              },
             ),
           ),
       ],
@@ -105,10 +116,10 @@ class _Image extends StatelessWidget {
   }
 
   Widget _placeholder() => Container(
-    height: AppSizes.propertyCardH,
-    color: AppColors.background,
-    child: const Icon(Icons.home, size: 60, color: AppColors.textLight),
-  );
+        height: AppSizes.propertyCardH,
+        color: AppColors.background,
+        child: const Icon(Icons.home, size: 60, color: AppColors.textLight),
+      );
 }
 
 class _Info extends StatelessWidget {
@@ -161,7 +172,8 @@ class _Info extends StatelessWidget {
                   _chip(Icons.bed, '${property.bedrooms}'),
                 if (property.bathrooms != null)
                   _chip(Icons.bathtub_outlined, '${property.bathrooms}'),
-                if (property.parkingSpaces != null && property.parkingSpaces! > 0)
+                if (property.parkingSpaces != null &&
+                    property.parkingSpaces! > 0)
                   _chip(Icons.local_parking, '${property.parkingSpaces}'),
               ]),
             ],
@@ -172,21 +184,21 @@ class _Info extends StatelessWidget {
   }
 
   Widget _chip(IconData icon, String val) => Container(
-    margin: const EdgeInsets.only(left: AppSizes.xs),
-    padding: const EdgeInsets.symmetric(
-        horizontal: AppSizes.sm, vertical: AppSizes.xs),
-    decoration: BoxDecoration(
-      color: AppColors.primary,
-      borderRadius: BorderRadius.circular(AppSizes.radiusSm),
-    ),
-    child: Row(
-      children: [
-        Icon(icon, size: 12, color: AppColors.textWhite),
-        const SizedBox(width: 2),
-        Text(val,
-            style: const TextStyle(
-                color: AppColors.textWhite, fontSize: AppSizes.fontXs)),
-      ],
-    ),
-  );
+        margin: const EdgeInsets.only(left: AppSizes.xs),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.sm, vertical: AppSizes.xs),
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 12, color: AppColors.textWhite),
+            const SizedBox(width: 2),
+            Text(val,
+                style: const TextStyle(
+                    color: AppColors.textWhite, fontSize: AppSizes.fontXs)),
+          ],
+        ),
+      );
 }

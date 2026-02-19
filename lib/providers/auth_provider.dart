@@ -14,21 +14,40 @@ class AuthProvider with ChangeNotifier {
 
   AuthProvider(this._api);
 
-  UserModel? get user      => _user;
-  bool get loading         => _loading;
-  bool get authenticated   => _user != null;
-  String? get error        => _error;
+  UserModel? get user => _user;
+  bool get loading => _loading;
+  bool get authenticated => _user != null;
+  String? get error => _error;
 
   // Called once at app start — restores session if Firebase user exists
   Future<void> init() async {
-    if (_auth.currentUser == null) return;
+    final user = _auth.currentUser;
+    if (user == null) return;
+
     _loading = true;
     notifyListeners();
+
     try {
       await _syncUser();
-    } catch (_) {
-      // Token may be expired — force login
-      await _auth.signOut();
+    } catch (e) {
+      // If we are here, it means Firebase thinks we are logged in,
+      // but the backend refused /auth/me (likely 404/401 because DataSeeder wiped users).
+      // Attempt to self-repair by re-registering on backend
+      try {
+        if (user.email != null) {
+          await _api.post(ApiConstants.register, body: {
+            'name': user.displayName ?? user.email!.split('@')[0],
+            'email': user.email,
+            'firebaseUid': user.uid,
+          });
+          // Now try syncing again
+          await _syncUser();
+          return;
+        }
+      } catch (_) {
+        // If repair fails, force logout
+        await _auth.signOut();
+      }
     } finally {
       _loading = false;
       notifyListeners();
@@ -49,9 +68,15 @@ class AuthProvider with ChangeNotifier {
         password: password,
       );
       // 2. Register on backend
+      final user = _auth.currentUser;
+      if (user == null)
+        throw FirebaseAuthException(
+            code: 'user-not-found', message: 'User not found after creation');
+
       final data = await _api.post(ApiConstants.register, body: {
         'name': name,
         'email': email,
+        'firebaseUid': user.uid,
         if (phone != null) 'phoneNumber': phone,
       });
       _user = UserModel.fromJson(data);
@@ -112,10 +137,10 @@ class AuthProvider with ChangeNotifier {
     _setLoading(true);
     try {
       final data = await _api.put(ApiConstants.userProfile, body: {
-        if (name    != null) 'name':        name,
-        if (phone   != null) 'phoneNumber': phone,
-        if (bio     != null) 'bio':         bio,
-        if (address != null) 'address':     address,
+        if (name != null) 'name': name,
+        if (phone != null) 'phoneNumber': phone,
+        if (bio != null) 'bio': bio,
+        if (address != null) 'address': address,
       });
       _user = UserModel.fromJson(data);
       _error = null;
@@ -147,12 +172,12 @@ class AuthProvider with ChangeNotifier {
   }
 
   String _firebaseMsg(String code) => switch (code) {
-    'user-not-found'       => 'Aucun compte trouvé.',
-    'wrong-password'       => 'Mot de passe incorrect.',
-    'email-already-in-use' => 'Email déjà utilisé.',
-    'weak-password'        => 'Mot de passe trop faible.',
-    'invalid-email'        => 'Email invalide.',
-    'too-many-requests'    => 'Trop de tentatives. Réessayez.',
-    _                      => 'Erreur d\'authentification.',
-  };
+        'user-not-found' => 'Aucun compte trouvé.',
+        'wrong-password' => 'Mot de passe incorrect.',
+        'email-already-in-use' => 'Email déjà utilisé.',
+        'weak-password' => 'Mot de passe trop faible.',
+        'invalid-email' => 'Email invalide.',
+        'too-many-requests' => 'Trop de tentatives. Réessayez.',
+        _ => 'Erreur d\'authentification.',
+      };
 }

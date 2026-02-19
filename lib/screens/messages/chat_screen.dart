@@ -9,9 +9,9 @@ import '../../providers/message_provider.dart';
 import '../../providers/auth_provider.dart';
 
 class ChatScreen extends StatefulWidget {
-  final int     otherUserId;
-  final String  otherUserName;
-  final int?    propertyId;
+  final int otherUserId;
+  final String otherUserName;
+  final int? propertyId;
   final String? propertyTitle;
 
   const ChatScreen({
@@ -27,17 +27,24 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final _ctrl       = TextEditingController();
+  final _ctrl = TextEditingController();
   final _scrollCtrl = ScrollController();
+  late MessageProvider _msgProvider;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _msgProvider = context.read<MessageProvider>();
+  }
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<MessageProvider>().loadMessages(
-        widget.otherUserId,
-        propertyId: widget.propertyId,
-      );
+            widget.otherUserId,
+            propertyId: widget.propertyId,
+          );
     });
   }
 
@@ -45,7 +52,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void dispose() {
     _ctrl.dispose();
     _scrollCtrl.dispose();
-    context.read<MessageProvider>().clearMessages();
+    Future.microtask(() => _msgProvider.clearMessages());
     super.dispose();
   }
 
@@ -54,10 +61,10 @@ class _ChatScreenState extends State<ChatScreen> {
     if (text.isEmpty) return;
     _ctrl.clear();
     await context.read<MessageProvider>().send(
-      receiverId: widget.otherUserId,
-      content:    text,
-      propertyId: widget.propertyId,
-    );
+          receiverId: widget.otherUserId,
+          content: text,
+          propertyId: widget.propertyId,
+        );
     // Scroll to bottom
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollCtrl.hasClients) {
@@ -115,7 +122,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
 class _Bubble extends StatelessWidget {
   final MessageModel message;
-  final bool         isMe;
+  final bool isMe;
   const _Bubble({required this.message, required this.isMe});
 
   @override
@@ -126,14 +133,14 @@ class _Bubble extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: AppSizes.sm),
         padding: const EdgeInsets.symmetric(
             horizontal: AppSizes.md, vertical: AppSizes.sm),
-        constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * 0.72),
+        constraints:
+            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
         decoration: BoxDecoration(
           color: isMe ? AppColors.primary : AppColors.surface,
           borderRadius: BorderRadius.only(
-            topLeft:     const Radius.circular(AppSizes.radiusMd),
-            topRight:    const Radius.circular(AppSizes.radiusMd),
-            bottomLeft:  Radius.circular(isMe ? AppSizes.radiusMd : 0),
+            topLeft: const Radius.circular(AppSizes.radiusMd),
+            topRight: const Radius.circular(AppSizes.radiusMd),
+            bottomLeft: Radius.circular(isMe ? AppSizes.radiusMd : 0),
             bottomRight: Radius.circular(isMe ? 0 : AppSizes.radiusMd),
           ),
           boxShadow: [BoxShadow(color: AppColors.shadow, blurRadius: 4)],
@@ -164,8 +171,7 @@ class _InputBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.fromLTRB(
-          AppSizes.md, AppSizes.sm, AppSizes.md,
+      padding: EdgeInsets.fromLTRB(AppSizes.md, AppSizes.sm, AppSizes.md,
           AppSizes.sm + MediaQuery.of(context).viewInsets.bottom),
       color: AppColors.surface,
       child: Row(
@@ -191,7 +197,8 @@ class _InputBar extends StatelessWidget {
           CircleAvatar(
             backgroundColor: AppColors.primary,
             child: IconButton(
-              icon: const Icon(Icons.send, color: AppColors.textWhite, size: 20),
+              icon:
+                  const Icon(Icons.send, color: AppColors.textWhite, size: 20),
               onPressed: onSend,
             ),
           ),

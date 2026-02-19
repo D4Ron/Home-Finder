@@ -16,11 +16,11 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _formKey    = GlobalKey<FormState>();
-  final _nameCtrl   = TextEditingController();
-  final _emailCtrl  = TextEditingController();
-  final _passCtrl   = TextEditingController();
-  final _phoneCtrl  = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _nameCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
 
   @override
   void dispose() {
@@ -35,16 +35,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!_formKey.currentState!.validate()) return;
     final auth = context.read<AuthProvider>();
     final ok = await auth.register(
-      name:     _nameCtrl.text.trim(),
-      email:    _emailCtrl.text.trim(),
+      name: _nameCtrl.text.trim(),
+      email: _emailCtrl.text.trim(),
       password: _passCtrl.text,
-      phone:    _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
+      phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
     );
     if (!ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(auth.error ?? AppStrings.errorGeneric),
+        SnackBar(
+            content: Text(auth.error ?? AppStrings.errorGeneric),
             backgroundColor: AppColors.error),
       );
+    } else if (mounted) {
+      // Success! Pop so the main Auth wrapper shows Home
+      Navigator.pop(context);
     }
   }
 

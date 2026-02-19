@@ -29,16 +29,25 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
     });
   }
 
+  late PropertyProvider _propProvider;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _propProvider = context.read<PropertyProvider>();
+  }
+
   @override
   void dispose() {
-    context.read<PropertyProvider>().clearDetail();
+    // defer state update to next frame to avoid locked tree error
+    Future.microtask(() => _propProvider.clearDetail());
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<PropertyProvider>(builder: (_, props, __) {
-      if (props.loading) {
+      if (props.detailLoading) {
         return const Scaffold(body: Center(child: CircularProgressIndicator()));
       }
       if (props.detail == null) {
@@ -56,9 +65,12 @@ class _PropertyDetailScreenState extends State<PropertyDetailScreen> {
 
 class _Built extends StatelessWidget {
   final PropertyModel property;
-  final bool          expanded;
-  final VoidCallback  onToggleDesc;
-  const _Built({required this.property, required this.expanded, required this.onToggleDesc});
+  final bool expanded;
+  final VoidCallback onToggleDesc;
+  const _Built(
+      {required this.property,
+      required this.expanded,
+      required this.onToggleDesc});
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +89,8 @@ class _Built extends StatelessWidget {
                   child: CircleAvatar(
                     backgroundColor: Colors.white70,
                     child: IconButton(
-                      icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
+                      icon: const Icon(Icons.arrow_back,
+                          color: AppColors.textDark),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ),
@@ -87,20 +100,21 @@ class _Built extends StatelessWidget {
                   top: MediaQuery.of(context).padding.top + AppSizes.sm,
                   right: AppSizes.md,
                   child: Consumer<FavouriteProvider>(
-                    builder: (_, favs, __) => CircleAvatar(
-                      backgroundColor: AppColors.surface,
-                      child: IconButton(
-                        icon: Icon(
-                          property.isFavourited
-                              ? Icons.favorite
-                              : Icons.favorite_border,
-                          color: property.isFavourited
-                              ? AppColors.favourite
-                              : AppColors.textGrey,
+                    builder: (_, favs, __) {
+                      final isFav = favs.isFavourited(property.id);
+                      return CircleAvatar(
+                        backgroundColor: AppColors.surface,
+                        child: IconButton(
+                          icon: Icon(
+                            isFav ? Icons.favorite : Icons.favorite_border,
+                            color: isFav
+                                ? AppColors.favourite
+                                : AppColors.textGrey,
+                          ),
+                          onPressed: () => favs.toggle(property),
                         ),
-                        onPressed: () => favs.toggle(property),
-                      ),
-                    ),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -165,9 +179,8 @@ class _Built extends StatelessWidget {
                     style: TextButton.styleFrom(
                         padding: EdgeInsets.zero,
                         foregroundColor: AppColors.primary),
-                    child: Text(expanded
-                        ? AppStrings.readLess
-                        : AppStrings.readMore),
+                    child: Text(
+                        expanded ? AppStrings.readLess : AppStrings.readMore),
                   ),
                   const SizedBox(height: AppSizes.md),
                   // Owner card
@@ -204,27 +217,27 @@ class _SpecsRow extends StatelessWidget {
   }
 
   Widget _spec(IconData icon, String label) => Padding(
-    padding: const EdgeInsets.only(right: AppSizes.md),
-    child: Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(AppSizes.sm),
-          decoration: BoxDecoration(
-            color: AppColors.primary,
-            borderRadius: BorderRadius.circular(AppSizes.radiusSm),
-          ),
-          child: Icon(icon, color: AppColors.textWhite, size: 18),
+        padding: const EdgeInsets.only(right: AppSizes.md),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppSizes.sm),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+              ),
+              child: Icon(icon, color: AppColors.textWhite, size: 18),
+            ),
+            const SizedBox(width: AppSizes.xs),
+            Text(label, style: const TextStyle(fontSize: AppSizes.fontSm)),
+          ],
         ),
-        const SizedBox(width: AppSizes.xs),
-        Text(label, style: const TextStyle(fontSize: AppSizes.fontSm)),
-      ],
-    ),
-  );
+      );
 }
 
 class _Description extends StatelessWidget {
   final String text;
-  final bool   expanded;
+  final bool expanded;
   const _Description({required this.text, required this.expanded});
 
   @override
@@ -256,7 +269,8 @@ class _OwnerCard extends StatelessWidget {
             radius: AppSizes.avatarSm / 2,
             backgroundImage: property.ownerImageUrl != null
                 ? NetworkImage(property.ownerImageUrl!)
-                : const AssetImage('assets/images/profile.jpeg') as ImageProvider,
+                : const AssetImage('assets/images/profile.jpeg')
+                    as ImageProvider,
           ),
           const SizedBox(width: AppSizes.md),
           Expanded(
@@ -301,10 +315,10 @@ class _BottomActions extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (_) => ChatScreen(
-                    otherUserId:    property.ownerId,
-                    otherUserName:  property.ownerName,
-                    propertyId:     property.id,
-                    propertyTitle:  property.title,
+                    otherUserId: property.ownerId,
+                    otherUserName: property.ownerName,
+                    propertyId: property.id,
+                    propertyTitle: property.title,
                   ),
                 ),
               ),
